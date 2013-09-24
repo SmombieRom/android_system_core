@@ -54,6 +54,7 @@
 #include "init.h"
 #include "util.h"
 #include "log.h"
+#include "vendor_init.h"
 
 #define PERSISTENT_PROPERTY_DIR  "/data/property"
 #define FSTAB_PREFIX "/fstab."
@@ -518,6 +519,10 @@ void load_persist_props(void) {
     load_override_properties();
     /* Read persistent properties after all default values have been loaded. */
     load_persistent_properties();
+    /* update with vendor-specific property runtime
+     * overrides
+     */
+    vendor_load_properties();
 }
 
 void load_recovery_id_prop() {
