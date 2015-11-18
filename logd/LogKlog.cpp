@@ -39,15 +39,14 @@ static const char priority_message[] = { KMSG_PRIORITY(LOG_INFO), '\0' };
 // Parsing is hard
 
 // called if we see a '<', s is the next character, returns pointer after '>'
-static char *is_prio(char *s, size_t len) {
-    if (!len || !isdigit(*s++)) {
+static char *is_prio(char *s) {
+    if (!isdigit(*s++)) {
         return NULL;
     }
-    --len;
-    static const size_t max_prio_len = (len < 4) ? len : 4;
-    size_t priolen = 0;
+    static const size_t max_prio_len = 4;
+    size_t len = 0;
     char c;
-    while (((c = *s++)) && (++priolen <= max_prio_len)) {
+    while (((c = *s++)) && (++len <= max_prio_len)) {
         if (!isdigit(c)) {
             return ((c == '>') && (*s == '[')) ? s : NULL;
         }
@@ -56,19 +55,16 @@ static char *is_prio(char *s, size_t len) {
 }
 
 // called if we see a '[', s is the next character, returns pointer after ']'
-static char *is_timestamp(char *s, size_t len) {
-    while (len && (*s == ' ')) {
+static char *is_timestamp(char *s) {
+    while (*s == ' ') {
         ++s;
-        --len;
     }
-    if (!len || !isdigit(*s++)) {
+    if (!isdigit(*s++)) {
         return NULL;
     }
-    --len;
     bool first_period = true;
     char c;
-    while (len && ((c = *s++))) {
-        --len;
+    while ((c = *s++)) {
         if ((c == '.') && first_period) {
             first_period = false;
         } else if (!isdigit(c)) {
@@ -91,11 +87,7 @@ static char *is_timestamp(char *s, size_t len) {
 // space is one more than <digit> of 9
 #define OPEN_BRACKET_SPACE ((char)(OPEN_BRACKET_SIG | 10))
 
-char *log_strntok_r(char *s, size_t *len, char **last, size_t *sublen) {
-    *sublen = 0;
-    if (!*len) {
-        return NULL;
-    }
+char *log_strtok_r(char *s, char **last) {
     if (!s) {
         if (!(s = *last)) {
             return NULL;
@@ -105,7 +97,6 @@ char *log_strntok_r(char *s, size_t *len, char **last, size_t *sublen) {
         if ((*s & SIGNATURE_MASK) == LESS_THAN_SIG) {
             *s = (*s & ~SIGNATURE_MASK) + '0';
             *--s = '<';
-            ++*len;
         }
         // fixup for log signature split [,
         // OPEN_BRACKET_SPACE is space, OPEN_BRACKET_SIG + <digit>
@@ -116,30 +107,24 @@ char *log_strntok_r(char *s, size_t *len, char **last, size_t *sublen) {
                 *s = (*s & ~SIGNATURE_MASK) + '0';
             }
             *--s = '[';
-            ++*len;
         }
     }
 
-    while (*len && ((*s == '\r') || (*s == '\n'))) {
-        ++s;
-        --*len;
-    }
+    s += strspn(s, "\r\n");
 
-    if (!*len) {
+    if (!*s) { // no non-delimiter characters
         *last = NULL;
         return NULL;
     }
     char *peek, *tok = s;
 
     for (;;) {
-        if (*len == 0) {
+        char c = *s++;
+        switch (c) {
+        case '\0':
             *last = NULL;
             return tok;
-        }
-        char c = *s++;
-        --*len;
-        size_t adjust;
-        switch (c) {
+
         case '\r':
         case '\n':
             s[-1] = '\0';
@@ -147,7 +132,7 @@ char *log_strntok_r(char *s, size_t *len, char **last, size_t *sublen) {
             return tok;
 
         case '<':
-            peek = is_prio(s, *len);
+            peek = is_prio(s);
             if (!peek) {
                 break;
             }
@@ -158,26 +143,14 @@ char *log_strntok_r(char *s, size_t *len, char **last, size_t *sublen) {
                 *last = s;
                 return tok;
             }
-            adjust = peek - s;
-            if (adjust > *len) {
-                adjust = *len;
-            }
-            *sublen += adjust;
-            *len -= adjust;
             s = peek;
-            if ((*s == '[') && ((peek = is_timestamp(s + 1, *len - 1)))) {
-                adjust = peek - s;
-                if (adjust > *len) {
-                    adjust = *len;
-                }
-                *sublen += adjust;
-                *len -= adjust;
+            if ((*s == '[') && ((peek = is_timestamp(s + 1)))) {
                 s = peek;
             }
             break;
 
         case '[':
-            peek = is_timestamp(s, *len);
+            peek = is_timestamp(s);
             if (!peek) {
                 break;
             }
@@ -192,16 +165,9 @@ char *log_strntok_r(char *s, size_t *len, char **last, size_t *sublen) {
                 *last = s;
                 return tok;
             }
-            adjust = peek - s;
-            if (adjust > *len) {
-                adjust = *len;
-            }
-            *sublen += adjust;
-            *len -= adjust;
             s = peek;
             break;
         }
-        ++*sublen;
     }
     // NOTREACHED
 }
@@ -248,13 +214,13 @@ bool LogKlog::onDataAvailable(SocketClient *cli) {
         bool full = len == (sizeof(buffer) - 1);
         char *ep = buffer + len;
         *ep = '\0';
-        size_t sublen;
+        len = 0;
         for(char *ptr = NULL, *tok = buffer;
-                ((tok = log_strntok_r(tok, &len, &ptr, &sublen)));
+                ((tok = log_strtok_r(tok, &ptr)));
                 tok = NULL) {
-            if (((tok + sublen) >= ep) && (retval != 0) && full) {
-                memmove(buffer, tok, sublen);
-                len = sublen;
+            if (((tok + strlen(tok)) == ep) && (retval != 0) && full) {
+                len = strlen(tok);
+                memmove(buffer, tok, len);
                 break;
             }
             if (*tok) {
