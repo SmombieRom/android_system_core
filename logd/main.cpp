@@ -305,17 +305,17 @@ static void readDmesg(LogAudit *al, LogKlog *kl) {
     buf[len - 1] = '\0';
 
     if (kl) {
-        kl->synchronize(buf.get(), len);
+        kl->synchronize(buf.get());
     }
 
     for (char *ptr = NULL, *tok = buf.get();
          (rc >= 0) && ((tok = log_strtok_r(tok, &ptr)));
          tok = NULL) {
         if (al) {
-            rc = al->log(tok, sublen);
+            rc = al->log(tok);
         }
         if (kl) {
-            rc = kl->log(tok, sublen);
+            rc = kl->log(tok);
         }
     }
 }

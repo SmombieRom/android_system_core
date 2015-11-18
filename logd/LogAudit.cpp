@@ -239,9 +239,9 @@ int LogAudit::logPrint(const char *fmt, ...) {
     return rc;
 }
 
-int LogAudit::log(char *buf, size_t len) {
+int LogAudit::log(char *buf) {
     char *audit = strstr(buf, " audit(");
-    if (!audit || (audit >= &buf[len])) {
+    if (!audit) {
         return 0;
     }
 
@@ -249,7 +249,7 @@ int LogAudit::log(char *buf, size_t len) {
 
     int rc;
     char *type = strstr(buf, "type=");
-    if (type && (type < &buf[len])) {
+    if (type) {
         rc = logPrint("%s %s", type, audit + 1);
     } else {
         rc = logPrint("%s", audit + 1);
