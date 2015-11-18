@@ -34,7 +34,8 @@
 
 CommandListener::CommandListener(LogBuffer *buf, LogReader * /*reader*/,
                                  LogListener * /*swl*/) :
-        FrameworkListener(getLogSocket()) {
+        FrameworkListener(getLogSocket()),
+        mBuf(*buf) {
     // registerCmd(new ShutdownCmd(buf, writer, swl));
     registerCmd(new ClearCmd(buf));
     registerCmd(new GetBufSizeCmd(buf));
@@ -46,9 +47,10 @@ CommandListener::CommandListener(LogBuffer *buf, LogReader * /*reader*/,
     registerCmd(new ReinitCmd());
 }
 
-CommandListener::ShutdownCmd::ShutdownCmd(LogReader *reader,
+CommandListener::ShutdownCmd::ShutdownCmd(LogBuffer *buf, LogReader *reader,
                                           LogListener *swl) :
         LogCommand("shutdown"),
+        mBuf(*buf),
         mReader(*reader),
         mSwl(*swl) {
 }
