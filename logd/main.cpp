@@ -47,7 +47,6 @@
 #include "LogListener.h"
 #include "LogAudit.h"
 #include "LogKlog.h"
-#include "LogUtils.h"
 
 #define KMSG_PRIORITY(PRI)                            \
     '<',                                              \
