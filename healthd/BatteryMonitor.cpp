@@ -18,7 +18,6 @@
 
 #include "healthd.h"
 #include "BatteryMonitor.h"
-
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -277,10 +276,10 @@ bool BatteryMonitor::update(void) {
                             path.appendFormat("%s/%s/current_max", POWER_SUPPLY_SYSFS_PATH,
                                               name);
                             if (access(path.string(), R_OK) == 0) {
-                               int maxChargingCurrent = getIntField(path);
-                               if (props.maxChargingCurrent < maxChargingCurrent) {
-                                  props.maxChargingCurrent = maxChargingCurrent;
-                               }
+                                int maxChargingCurrent = getIntField(path);
+                                if (props.maxChargingCurrent < maxChargingCurrent) {
+                                    props.maxChargingCurrent = maxChargingCurrent;
+                                }
                             }
                         }
                     }

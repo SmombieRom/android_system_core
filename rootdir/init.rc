@@ -477,8 +477,11 @@ on boot
     chown system system /sys/class/leds/button-backlight/brightness
     chown system system /sys/class/leds/jogball-backlight/brightness
     chown system system /sys/class/leds/red/brightness
+    chown system system /sys/class/leds/red/blink
     chown system system /sys/class/leds/green/brightness
+    chown system system /sys/class/leds/green/blink
     chown system system /sys/class/leds/blue/brightness
+    chown system system /sys/class/leds/blue/blink
     chown system system /sys/class/leds/red/device/grpfreq
     chown system system /sys/class/leds/red/device/grppwm
     chown system system /sys/class/leds/red/device/blink
@@ -680,7 +683,7 @@ service encrypt /system/bin/vdc --wait cryptfs enablecrypto inplace default noui
 
 service bootanim /system/bin/bootanimation
     class core
-    user graphics
+    user media
     group graphics audio
     disabled
     oneshot
